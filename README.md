@@ -8,16 +8,10 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://mohamed-faris-pro.github.io/simulation-f1/">▶️ Jouer en ligne sur GitHub Pages</a></strong> — directement dans le navigateur, sans installation.<br>
-  <strong><a href="https://www.youtube.com/">📺 Voir la vidéo de présentation sur YouTube</a></strong> — démonstration complète commentée des modes de jeu.
-</p>
-
-<p align="center">
   <img src="https://img.shields.io/badge/p5.js-1.4.0-ED225D?logo=p5dotjs&logoColor=white" alt="p5.js">
   <img src="https://img.shields.io/badge/JavaScript-ES2022-F7DF1E?logo=javascript&logoColor=black" alt="JavaScript">
   <img src="https://img.shields.io/badge/Web%20Audio%20API-Proc%C3%A9dural-00d2ff" alt="Web Audio">
   <img src="https://img.shields.io/badge/60%20FPS-Buffer%20Graphique-10b981" alt="60 FPS">
-  <img src="https://img.shields.io/badge/Licence-MIT-blue" alt="Licence MIT">
 </p>
 
 ---
