@@ -3,7 +3,7 @@
 > Un jeu et simulateur de course de Formule 1 en 2D vu de dessus, où chaque monoplace est propulsée exclusivement par des forces physiques (Craig Reynolds, 1999) et pilotée par intelligence artificielle ou au clavier.
 
 <p align="center">
-  <a href="https://mohamed-faris-pro.github.io/simulation-f1/"><img src="https://img.shields.io/badge/%E2%96%B6%20JOUER%20EN%20LIGNE-GitHub%20Pages-e10600?style=for-the-badge&logo=github" alt="Jouer en ligne"></a>
+  <a href="https://medf55.github.io/simulation-f1/"><img src="https://img.shields.io/badge/%E2%96%B6%20JOUER%20EN%20LIGNE-GitHub%20Pages-e10600?style=for-the-badge&logo=github" alt="Jouer en ligne"></a>
   <a href="https://www.youtube.com/"><img src="https://img.shields.io/badge/%E2%96%B6%20D%C3%89MO%20YOUTUBE-Vid%C3%A9o%20Gameplay-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Démo YouTube"></a>
 </p>
 
