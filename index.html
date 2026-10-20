@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Grand Prix IA - Algorithme Génétique & Steering Behaviors Reynolds</title>
+
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏎️</text></svg>" />
+
+    <!-- Librairies P5 et TensorFlow.js (Supporte exécution locale et en ligne) -->
+    <script src="libraries/p5.min.js"></script>
+    <script src="libraries/p5.sound.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.1.0/dist/tf.min.js"></script>
+  </head>
+  <body>
+    <!-- Barre supérieure : Panneau, Sélecteur de mode & Actions rapides -->
+    <header id="top-bar">
+      <button id="toggle-panel-btn">⚙️ Réglages & IA (H)</button>
+
+      <!-- Sélecteur de mode de jeu -->
+      <div id="mode-selector">
+        <button class="mode-tab active" id="tab-mode-evolution" data-mode="evolution" onclick="setGameMode('evolution')">
+          🧬 Évolution IA (1)
+        </button>
+        <button class="mode-tab" id="tab-mode-race" data-mode="race" onclick="setGameMode('race')">
+          🏎️ Joueur vs IA (2)
+        </button>
+        <button class="mode-tab" id="tab-mode-time-attack" data-mode="time_attack" onclick="setGameMode('time_attack')">
+          ⏱️ Contre-la-Montre (3)
+        </button>
+      </div>
+
+      <!-- Actions multimédia rapides -->
+      <div id="quick-actions">
+        <button class="quick-btn" id="btn-quick-cam" title="Changer de vue (V)">🎥 Vue : Aérienne</button>
+        <button class="quick-btn" id="btn-quick-audio" title="Activer / Désactiver le son (M)">🔇 Son : OFF</button>
+        <button class="quick-btn" id="btn-quick-hazards" title="Basculer obstacles et flaques (O)">⚠️ Obstacles : OFF</button>
+      </div>
+    </header>
+
+    <!-- Bandeau télémétrie en temps réel -->
+    <div id="telemetry-bar">
+      <div class="telemetry-card">
+        <span class="label">Framerate</span>
+        <span class="value" id="val-fps">60 FPS</span>
+      </div>
+      <div class="telemetry-card" id="card-gen">
+        <span class="label">Génération</span>
+        <span class="value emerald" id="val-gen">0</span>
+      </div>
+      <div class="telemetry-card" id="card-alive">
+        <span class="label">Survivants</span>
+        <span class="value" id="val-alive">50 / 50</span>
+      </div>
+      <div class="telemetry-card">
+        <span class="label">Record Fitness</span>
+        <span class="value gold" id="val-best-fit">0</span>
+      </div>
+      <div class="telemetry-card">
+        <span class="label">Record Tours</span>
+        <span class="value gold" id="val-laps">0 tour</span>
+      </div>
+    </div>
+
+    <!-- Notification Toast pour les succès et records -->
+    <div id="toast-banner">Message d'information</div>
+
+    <!-- Panneau de contrôle escamotable -->
+    <aside id="control-panel" class="hidden">
+      <div class="panel-header">
+        <h2>🏎️ Centre de Pilotage & Évolution</h2>
+        <button id="btn-close-panel" style="background:none; border:none; color:#94a3b8; font-size:16px; cursor:pointer;">✕</button>
+      </div>
+
+      <!-- 0. Mode de Jeu Actif -->
+      <div class="section-card">
+        <div class="section-title">🎮 Mode de Jeu</div>
+        <div class="control-group row">
+          <label class="control-label">Mode actif :</label>
+          <span class="value-badge gold" id="lbl-active-mode">Laboratoire IA</span>
+        </div>
+        <p class="section-desc" id="lbl-mode-desc">
+          Entraînement de la flotte avec algorithme génétique et réseaux de neurones.
+        </p>
+      </div>
+
+      <!-- 1. Steering Behaviors Composables (Reynolds, Boids & Obstacles) -->
+      <div class="section-card">
+        <div class="section-title">🛸 Steering Behaviors Composables</div>
+        
+        <div class="control-group row">
+          <label class="control-label" for="chk-separation">Séparation inter-voitures (7-Boids) :</label>
+          <input id="chk-separation" type="checkbox" checked style="cursor:pointer;" />
+        </div>
+
+        <div class="control-group row">
+          <label class="control-label" for="chk-drafting">Aspiration aérodynamique (+20% vit) :</label>
+          <input id="chk-drafting" type="checkbox" checked style="cursor:pointer;" />
+        </div>
+
+        <div class="control-group row">
+          <label class="control-label" for="chk-hazards">Flaques d'huile & Cônes (6-Avoidance) :</label>
+          <input id="chk-hazards" type="checkbox" style="cursor:pointer;" />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="slider-separation-dist">
+            Rayon de répulsion : <span class="value-badge" id="lbl-separation-dist">24 px</span>
+          </label>
+          <input id="slider-separation-dist" type="range" min="15" max="45" step="1" value="24" />
+        </div>
+      </div>
+
+      <!-- 2. Cerveau & Réseau de Neurones -->
+      <div class="section-card">
+        <div class="section-title">🧠 Architecture Réseau de Neurones</div>
+        
+        <div class="control-group">
+          <label class="control-label" for="slider-hidden-layers">
+            Couches cachées : <span class="value-badge" id="lbl-hidden-layers">1 couche</span>
+          </label>
+          <input id="slider-hidden-layers" type="range" min="1" max="3" step="1" value="1" />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="slider-neurons-layer">
+            Neurones par couche : <span class="value-badge" id="lbl-neurons-layer">10</span>
+          </label>
+          <input id="slider-neurons-layer" type="range" min="4" max="32" step="2" value="10" />
+        </div>
+
+        <div class="control-group row">
+          <label class="control-label" for="select-activation">Activation :</label>
+          <select id="select-activation">
+            <option value="tanh" selected>Tanh (Symétrique [-1, 1])</option>
+            <option value="relu">ReLU (Non-linéaire)</option>
+            <option value="sigmoid">Sigmoïde [0, 1]</option>
+          </select>
+        </div>
+
+        <div class="control-group row">
+          <label class="control-label" for="chk-speed-sensor">Capteur vitesse propre :</label>
+          <input id="chk-speed-sensor" type="checkbox" style="cursor:pointer;" />
+        </div>
+      </div>
+
+      <!-- 3. Capteurs & Vision (Raycasting) -->
+      <div class="section-card">
+        <div class="section-title">📡 Capteurs & Raycasting</div>
+
+        <div class="control-group">
+          <label class="control-label" for="slider-sensors">
+            Nombre de capteurs : <span class="value-badge" id="lbl-sensors">5 rayons</span>
+          </label>
+          <input id="slider-sensors" type="range" min="3" max="15" step="2" value="5" />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="slider-fov">
+            Champ de vision (FOV) : <span class="value-badge" id="lbl-fov">108°</span>
+          </label>
+          <input id="slider-fov" type="range" min="45" max="180" step="5" value="108" />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="slider-sight">
+            Portée des rayons : <span class="value-badge" id="lbl-sight">120 px</span>
+          </label>
+          <input id="slider-sight" type="range" min="50" max="250" step="10" value="120" />
+        </div>
+      </div>
+
+      <!-- 4. Véhicule & Pilotage Reynolds -->
+      <div class="section-card">
+        <div class="section-title">⚡ Dynamique & Vitesse</div>
+
+        <div class="control-group">
+          <label class="control-label" for="slider-maxspeed">
+            Vitesse max (maxSpeed) : <span class="value-badge" id="lbl-maxspeed">6 px/f</span>
+          </label>
+          <input id="slider-maxspeed" type="range" min="2" max="15" step="0.5" value="6" />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="slider-maxforce">
+            Force braquage (maxForce) : <span class="value-badge" id="lbl-maxforce">0.28</span>
+          </label>
+          <input id="slider-maxforce" type="range" min="0.1" max="1.0" step="0.02" value="0.28" />
+        </div>
+      </div>
+
+      <!-- 5. Algorithme Génétique -->
+      <div class="section-card">
+        <div class="section-title">🧬 Génétique & Sélection</div>
+
+        <div class="control-group">
+          <label class="control-label" for="slider-pop">
+            Population totale : <span class="value-badge" id="lbl-pop">50 voitures</span>
+          </label>
+          <input id="slider-pop" type="range" min="20" max="150" step="5" value="50" />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="slider-mutation">
+            Taux de mutation : <span class="value-badge" id="lbl-mutation">10 %</span>
+          </label>
+          <input id="slider-mutation" type="range" min="0.01" max="0.30" step="0.01" value="0.10" />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="slider-lifespan">
+            Tolérance inactivité : <span class="value-badge" id="lbl-lifespan">45 frames</span>
+          </label>
+          <input id="slider-lifespan" type="range" min="20" max="120" step="5" value="45" />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="slider-elitism">
+            Élites préservés : <span class="value-badge" id="lbl-elitism">2 champions</span>
+          </label>
+          <input id="slider-elitism" type="range" min="1" max="5" step="1" value="2" />
+        </div>
+      </div>
+
+      <!-- 6. Persistance du Champion IA (LocalStorage) -->
+      <div class="section-card">
+        <div class="section-title">💾 Sauvegarde du Champion IA</div>
+        <div class="btn-grid">
+          <button class="btn-action" id="btn-save-champion">💾 Sauvegarder IA</button>
+          <button class="btn-action" id="btn-load-ghost">⭐ Charger Ghost</button>
+        </div>
+      </div>
+
+      <!-- 7. Circuit & Vitesse de Simulation -->
+      <div class="section-card">
+        <div class="section-title">🏁 Circuit & Vitesse de Simulation</div>
+
+        <div class="control-group">
+          <label class="control-label" for="slider-track-width">
+            Largeur de la piste : <span class="value-badge" id="lbl-track-width">60 px</span>
+          </label>
+          <input id="slider-track-width" type="range" min="35" max="110" step="5" value="60" />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="slider-speed">
+            Accélérateur temporel : <span class="value-badge" id="lbl-speed">x1</span>
+          </label>
+          <input id="slider-speed" type="range" min="1" max="20" step="1" value="1" />
+        </div>
+
+        <div class="btn-grid">
+          <button class="btn-action" id="btn-turbo">⚡ Mode Turbo : OFF</button>
+          <button class="btn-action" id="btn-brain-hud">🧠 HUD Cerveau : ON</button>
+        </div>
+
+        <div class="btn-grid">
+          <button class="btn-action" id="btn-debug">🔍 Mode Debug : OFF (D)</button>
+          <button class="btn-action" id="btn-new-track">🎲 Nouveau Circuit (B)</button>
+        </div>
+
+        <div class="btn-grid">
+          <button class="btn-action preset" id="btn-perfect-preset" style="grid-column: span 2; background: rgba(245, 158, 11, 0.22); border-color: #f59e0b; color: #fbbf24;">⭐ Charger les Réglages Parfaits</button>
+        </div>
+
+        <div class="btn-grid">
+          <button class="btn-action reset" id="btn-reset" style="grid-column: span 2;">🔄 Réinitialiser la Population (R)</button>
+        </div>
+      </div>
+
+      <div class="shortcuts-help">
+        <b>Modes :</b> <kbd>1</kbd> Évolution · <kbd>2</kbd> Course vs IA · <kbd>3</kbd> Contre-la-Montre<br />
+        <b>Pilotage Joueur :</b> <kbd>Flèches</kbd> ou <kbd>ZQSD</kbd> (Accélérer, Freiner, Tourner)<br />
+        <b>Raccourcis :</b> <kbd>L</kbd> Trajectoire F1 · <kbd>C</kbd> Livrée · <kbd>R</kbd> Revanche · <kbd>V</kbd> Vue poursuite · <kbd>M</kbd> Son · <kbd>O</kbd> Obstacles · <kbd>D/X</kbd> Debug · <kbd>H</kbd> Panneau · <kbd>B</kbd> Circuit · <kbd>Espace</kbd> Pause
+      </div>
+    </aside>
+
+    <!-- Fichiers logiques de la simulation -->
+    <script src="boundary.js?v=2.9"></script>
+    <script src="ray.js?v=2.9"></script>
+    <script src="nn.js?v=2.9"></script>
+    <script src="vehicle.js?v=2.9"></script>
+    <script src="sound.js?v=2.9"></script>
+    <script src="hazard.js?v=2.9"></script>
+    <script src="playerCar.js?v=2.9"></script>
+    <script src="car.js?v=2.9"></script>
+    <script src="ga.js?v=2.9"></script>
+    <script src="sketch.js?v=2.9"></script>
+  </body>
+</html>
